@@ -22,11 +22,11 @@ let userSchema = new mongoose.Schema(
     },
     emailVerificationToken: {
       type: String,
-      required: true,
+      required: false,
     },
     emailVerifyTokenExpires: {
       type: String,
-      required: true,
+      required: false,
     },
     IsVerify: {
       type: Boolean,

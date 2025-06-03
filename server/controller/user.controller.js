@@ -2,8 +2,9 @@ import { validationResult } from "express-validator";
 import user from "../model/user.schema.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
-import { sendOTP } from "../email/sendemail.js";
+import { sendOTP, sendWelcomeEmail } from "../email/sendemail.js";
 
+// Register
 let register = async (req, res) => {
   let { username, name, email, password } = req.body;
   try {
@@ -15,7 +16,6 @@ let register = async (req, res) => {
       });
     }
 
-    // Check if user exists
     let existingUser = await user.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -24,14 +24,10 @@ let register = async (req, res) => {
       });
     }
 
-    // Generate OTP (4 digits)
     let otp = Math.floor(1000 + Math.random() * 9000).toString();
-    let otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
-
-    // Password hashing
+    let otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     let hashedpassword = await bcrypt.hash(password, 12);
 
-    // Create user with OTP details
     let newUser = new user({
       username,
       name,
@@ -42,22 +38,14 @@ let register = async (req, res) => {
       IsVerify: false,
     });
 
-    // Save user
     let createdUser = await newUser.save();
 
-    // Send OTP email
-    let emailSent = await sendOTP(email, otp);
-    if (!emailSent) {
-      await user.deleteOne({ _id: createdUser._id });
-      return res.status(500).json({
-        status: false,
-        message: "Failed to send verification email",
-      });
-    }
+    // ✅ Send OTP email here
+    await sendOTP(email, otp);
 
     res.status(201).json({
       status: true,
-      message: `OTP sent to ${email}. Please verify within 10 minutes.`,
+      message: `User registered successfully. Please verify with OTP.`,
       userId: createdUser._id,
     });
   } catch (error) {
@@ -69,6 +57,7 @@ let register = async (req, res) => {
   }
 };
 
+// Verify OTP
 let verifyOTP = async (req, res) => {
   let { userId, otp } = req.body;
   try {
@@ -95,7 +84,15 @@ let verifyOTP = async (req, res) => {
       });
     }
 
-    // Generate token and send response
+    // ✅ Mark user as verified
+    userToVerify.IsVerify = true;
+    userToVerify.emailVerificationToken = undefined;
+    userToVerify.emailVerifyTokenExpires = undefined;
+    await userToVerify.save();
+
+    // ✅ Send welcome email
+    await sendWelcomeEmail(userToVerify.email, userToVerify.username);
+
     generateToken(res, userToVerify._id);
 
     res.status(200).json({
@@ -207,37 +204,38 @@ let checkAuthentication = async (req, res) => {
   });
 };
 
-
 // get user
 let getUser = async (req, res) => {
-    try {
-        let userId = req.userId;
-        if (!userId) {
-            return res.status(404).json({
-                status: false,
-                message: "userId is required",
-            });
-        }
-
-        let findUser = await user.findById(userId).select("-password");
-        if (!findUser) {
-            return res.status(404).json({
-                status: false,
-                message: "user not found",
-            });
-        }
-
-        res.status(200).json({
-            status: true,
-            message: "user found successfully",
-            finalUser: findUser,
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: "internal server error",
-        });
+  try {
+    let userId = req.userId;
+    if (!userId) {
+      return res.status(404).json({
+        status: false,
+        message: "userId is required",
+      });
     }
+
+    let findUser = await user.findById(userId).select("-password");
+    if (!findUser) {
+      return res.status(404).json({
+        status: false,
+        message: "user not found",
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "user found successfully",
+      finalUser: findUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "internal server error",
+    });
+  }
 };
+
+
 
 export { register, verifyOTP, login, logout, checkAuthentication, getUser };

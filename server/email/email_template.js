@@ -11,3 +11,16 @@ export function generateOTPTemplate(otp) {
     </div>
   `;
 }
+
+
+export function generateWelcomeTemplate(username) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Welcome to Our Platform!</h2>
+      <p>Dear ${username},</p>
+      <p>Your account has been successfully verified and created.</p>
+      <p>Thank you for joining us!</p>
+      <p style="color: #666; font-size: 14px;">Start exploring our platform now.</p>
+    </div>
+  `;
+}
