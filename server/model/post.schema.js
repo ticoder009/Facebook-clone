@@ -6,28 +6,35 @@ let postSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    image: {
+    media_url: {
       type: String,
-      default: "",
+      required: true,
+    },
+    media_type: {
+      type: String,
+      enum: ["image", "video"],
+      required: true,
     },
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
+        ref: "User",  // Changed to match your user model name
       },
     ],
-    comment: [
+    comments: [  // Changed from 'comment' to 'comments' for consistency
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "comment",
+        ref: "Comment",
       },
     ],
     author: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
+      ref: "User",
+      required: true,
     },
   },
   { timestamps: true }
 );
-let post = mongoose.model("post", postSchema);
-export default post;
+
+let Post = mongoose.model("Post", postSchema);  // Using PascalCase for model name
+export default Post;

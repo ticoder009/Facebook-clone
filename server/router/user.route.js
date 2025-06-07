@@ -7,6 +7,9 @@ import {
   logout,
   register,
   verifyOTP,
+  suggestedUser,
+  getUserById,
+  followAndUnfollow
 } from "../controller/user.controller.js";
 import { body } from "express-validator";
 import auth from "../middleware/auth.js";
@@ -34,11 +37,17 @@ let validation = [
     .withMessage("Password must be at least 6 characters long"),
 ];
 
+// Authentication routes
 route.post("/register", validation, register);
 route.post("/verify-otp", verifyOTP);
 route.post("/login", login);
 route.get("/logout", logout);
 route.get("/checkAuthentication", auth, checkAuthentication);
+
+// User routes
 route.get("/getUser", auth, getUser);
+route.get("/suggestedUser", auth, suggestedUser);
+route.get("/getUserById/:userId", auth, getUserById);
+route.put("/followAndUnfollow/:id", auth, followAndUnfollow);
 
 export default route;

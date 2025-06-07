@@ -236,6 +236,129 @@ let getUser = async (req, res) => {
   }
 };
 
+//sugested user
+let suggestedUser = async (req, res) => {
+  try {
+    let userId = req.userId;
+    if (!userId) {
+      return res.status(400).json({
+        status: false,
+        message: "userId is required",
+      });
+    }
+
+    let findUser = await user
+      .find({ _id: { $ne: userId } })
+      .select("-password")
+      .limit(5)
+      .lean();
+    if (findUser.length > 0) {
+      res.status(200).json({
+        status: true,
+        message: "find suggested user successfully",
+        suggestedUser: findUser,
+      });
+    } else {
+      res.status(400).json({
+        status: false,
+        message: "user not found",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "internal server error",
+      error,
+    });
+  }
+};
+
+// get user by specific Id
+let getUserById = async (req, res) => {
+  try {
+    let { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        status: false,
+        message: "userId is required",
+      });
+    }
+
+    let fineUser = await user.findById(userId).select("-password");
+    if (!fineUser) {
+      return res.status(404).json({
+        status: false,
+        message: "user not found",
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: "find user successfully",
+      user: fineUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "internal server error",
+      error,
+    });
+  }
+};
+
+// follow and unfollow
+let followAndUnfollow = async (req, res) => {
+  try {
+    let userMe = req.userId;
+    let userYou = req.params.id;
+
+    if (!userMe || !userYou) {
+      return res.status(404).json({
+        status: false,
+        message: "userId is required",
+      });
+    }
+
+    let [me, you] = await Promise.all([
+      user.findById(userMe),
+      user.findById(userYou),
+    ]);
+
+    if (!me || !you) {
+      return res.status(404).json({
+        status: false,
+        message: "user not found",
+      });
+    }
+
+    let isFollowing = me.following.includes(userYou);
+
+    await Promise.all([
+      user.updateOne(
+        { _id: userMe },
+        { [isFollowing ? "$pull" : "$push"]: { following: userYou } }
+      ),
+      user.updateOne(
+        { _id: userYou },
+        { [isFollowing ? "$pull" : "$push"]: { followers: userMe } }
+      ),
+    ]);
+
+    return res.status(200).json({
+      status: true,
+      message: isFollowing
+        ? "User unfollowed successfully"
+        : "User followed successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "internal server error",
+      error: error.message,
+    });
+  }
+};
 
 
-export { register, verifyOTP, login, logout, checkAuthentication, getUser };
+
+export { register, verifyOTP, login, logout, checkAuthentication, getUser, suggestedUser, getUserById, followAndUnfollow };

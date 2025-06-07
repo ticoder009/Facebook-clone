@@ -3,28 +3,42 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import connectDB from "./utils/connectiondb.js";
 import cors from "cors";
-import route from "./router/user.route.js";
-let app = express();
-let port = process.env.PORT || 5000;
+import userRoute from "./router/user.route.js";
+import postRoute from "./router/post.route.js";
+
 dotenv.config();
 
-// middleware
+const app = express();
+const port = process.env.PORT || 5000;
+
+// Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   })
 );
 
-app.use(cookieParser());
-
-// database connection
+// Database connection
 connectDB();
 
-//routes
-app.use("/api", route);
+// Routes
+app.use("/api/users", userRoute);
+app.use("/api/posts", postRoute);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    status: false, 
+    message: "Something broke!",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined
+  });
+});
 
 app.listen(port, () => {
-  console.log(`http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
